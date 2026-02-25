@@ -14,14 +14,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("v1/api/projects")
+@SecurityRequirement(name = "bearerAuth")
 public class ProjectController {
 
     private final ProjectService service;
+    private final ProjectInvitationService invitationService;
 
-    public ProjectController(ProjectService service) {
+    public ProjectController(ProjectService service, ProjectInvitationService invitationService) {
         this.service = service;
+        this.invitationService = invitationService;
     }
 
     @PostMapping
@@ -55,8 +61,8 @@ public class ProjectController {
 
     @PostMapping("/{id}/tasks")
     @ResponseStatus(HttpStatus.CREATED)
-    public Task addTask(@PathVariable Integer id, @RequestBody Task task) {
-        return service.addTask(id, task)
+    public Task addTask(@PathVariable Integer id, @Valid @RequestBody CreateTaskRequest request) {
+        return service.addTask(id, request)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
     }
 
@@ -67,5 +73,19 @@ public class ProjectController {
         if (!deleted) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
         }
+    }
+
+    @PostMapping("/{id}/invites")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProjectInvitationResponse inviteMember(
+            @PathVariable Integer id,
+            @Valid @RequestBody CreateProjectInvitationRequest request
+    ) {
+        return invitationService.createInvitation(id, request);
+    }
+
+    @GetMapping("/{id}/invites")
+    public List<ProjectInvitationResponse> listProjectInvites(@PathVariable Integer id) {
+        return invitationService.listProjectInvitations(id);
     }
 }

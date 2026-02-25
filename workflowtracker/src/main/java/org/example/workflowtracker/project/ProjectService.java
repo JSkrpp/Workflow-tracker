@@ -1,54 +1,100 @@
 package org.example.workflowtracker.project;
 
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.example.workflowtracker.Task.Task;
+import org.example.workflowtracker.Task.TaskRepository;
+import org.example.workflowtracker.Task.TaskStatus;
+import org.example.workflowtracker.user.CurrentUserService;
+import org.example.workflowtracker.user.User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProjectService {
-    private final ConcurrentHashMap<Integer, Project> store = new ConcurrentHashMap<>();
-    private final AtomicInteger sequence = new AtomicInteger(1);
+    private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final CurrentUserService currentUserService;
 
+    public ProjectService(
+            ProjectRepository projectRepository,
+            TaskRepository taskRepository,
+            ProjectMemberRepository projectMemberRepository,
+            CurrentUserService currentUserService
+    ) {
+        this.projectRepository = projectRepository;
+        this.taskRepository = taskRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.currentUserService = currentUserService;
+    }
+
+    @Transactional
     public Project create(CreateProjectRequest request) {
-        Integer id = sequence.getAndIncrement();
-        Project project = new Project(
-                id,
-                request.getKey(),
-                request.getName(),
-                request.getDescription(),
-                Instant.now(),
-                new ArrayList<>()
-        );
-        store.put(id, project);
-        return project;
+        User currentUser = currentUserService.getCurrentUserOrThrow();
+
+        Project project = new Project();
+        project.setKey(request.getKey());
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setCreatedBy(currentUser);
+
+        Project savedProject = projectRepository.save(project);
+
+        ProjectMember ownerMember = new ProjectMember();
+        ownerMember.setProject(savedProject);
+        ownerMember.setUser(currentUser);
+        ownerMember.setRole(ProjectMemberRole.OWNER);
+        projectMemberRepository.save(ownerMember);
+
+        return savedProject;
     }
 
+    @Transactional(readOnly = true)
     public List<Project> findAll() {
-        return new ArrayList<>(store.values());
+        User currentUser = currentUserService.getCurrentUserOrThrow();
+        return projectRepository.findAccessibleProjects(currentUser);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Project> findById(Integer id) {
-        return Optional.ofNullable(store.get(id));
+        Integer projectId = Objects.requireNonNull(id, "Project id cannot be null");
+        return projectRepository.findById(projectId);
     }
 
+    @Transactional(readOnly = true)
     public Optional<List<Task>> findTasks(Integer projectId) {
-        return findById(projectId).map(Project::getTasks);
+        Integer id = Objects.requireNonNull(projectId, "Project id cannot be null");
+        return projectRepository.findById(id)
+                .map(project -> {
+                    project.getTasks().size();
+                    return project.getTasks();
+                });
     }
 
-    public Optional<Task> addTask(Integer projectId, Task task) {
-        Project project = store.get(projectId);
-        if (project == null) return Optional.empty();
-        project.addTask(task);
-        return Optional.of(task);
+    @Transactional
+    public Optional<Task> addTask(Integer projectId, CreateTaskRequest request) {
+        Integer id = Objects.requireNonNull(projectId, "Project id cannot be null");
+        return projectRepository.findById(id)
+                .map(project -> {
+                    Task task = new Task();
+                    task.setTitle(request.title().trim());
+                    task.setDescription(request.description());
+                    task.setStatus(TaskStatus.from(request.status()));
+                    task.setProject(project);
+                    return taskRepository.save(task);
+                });
     }
 
+    @Transactional
     public boolean delete(Integer id) {
-        return store.remove(id) != null;
+        Integer projectId = Objects.requireNonNull(id, "Project id cannot be null");
+        if (!projectRepository.existsById(projectId)) {
+            return false;
+        }
+        projectRepository.deleteById(projectId);
+        return true;
     }
 }
