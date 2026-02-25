@@ -6,6 +6,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Development utility to clean up all project data at starup
+ * Can be enabled/disabled via "app.dev.clean-project-data" property in application.properties
+ */
+
 @Component
 @ConditionalOnProperty(name = "app.dev.clean-project-data", havingValue = "true")
 public class DevelopmentProjectCleanup implements CommandLineRunner {

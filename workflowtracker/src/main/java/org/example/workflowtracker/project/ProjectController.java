@@ -2,6 +2,7 @@ package org.example.workflowtracker.project;
 
 import java.util.List;
 
+import org.example.workflowtracker.Task.CreateTaskRequest;
 import org.example.workflowtracker.Task.Task;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;

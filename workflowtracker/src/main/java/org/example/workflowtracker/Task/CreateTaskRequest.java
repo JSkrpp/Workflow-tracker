@@ -1,4 +1,4 @@
-package org.example.workflowtracker.project;
+package org.example.workflowtracker.Task;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
