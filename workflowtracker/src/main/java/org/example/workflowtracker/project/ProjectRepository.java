@@ -8,6 +8,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ProjectRepository extends JpaRepository<Project, Integer> {
+
+    /**
+     * 
+     * @param user
+     * @return List of projects accessible by the user
+     */
     @Query("""
             select distinct p
             from Project p
