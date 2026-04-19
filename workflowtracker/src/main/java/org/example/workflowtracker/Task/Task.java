@@ -3,8 +3,10 @@ package org.example.workflowtracker.Task;
 import java.time.Instant;
 
 import org.example.workflowtracker.project.Project;
+import org.example.workflowtracker.user.User;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,15 +46,25 @@ public class Task {
     @JsonIgnore
     private Project project;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_user_id")
+    @JsonIgnore
+    private User assignee;
+
     public Task() {}
 
     public Task(Integer id, String title, String description, TaskStatus status, Instant createdAt, Project project) {
+        this(id, title, description, status, createdAt, project, null);
+    }
+
+    public Task(Integer id, String title, String description, TaskStatus status, Instant createdAt, Project project, User assignee) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.status = status;
         this.createdAt = createdAt;
         this.project = project;
+        this.assignee = assignee;
     }
 
     @PrePersist
@@ -82,4 +94,17 @@ public class Task {
 
     public Project getProject() { return project; }
     public void setProject(Project project) { this.project = project; }
+
+    public User getAssignee() { return assignee; }
+    public void setAssignee(User assignee) { this.assignee = assignee; }
+
+    @JsonProperty("assigneeUserId")
+    public Integer getAssigneeUserId() {
+        return assignee != null ? assignee.getId() : null;
+    }
+
+    @JsonProperty("assigneeDisplayName")
+    public String getAssigneeDisplayName() {
+        return assignee != null ? assignee.getDisplayName() : null;
+    }
 }

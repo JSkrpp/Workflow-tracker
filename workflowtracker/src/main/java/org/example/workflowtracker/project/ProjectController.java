@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.example.workflowtracker.Task.CreateTaskRequest;
 import org.example.workflowtracker.Task.Task;
+import org.example.workflowtracker.Task.UpdateTaskRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -60,11 +62,27 @@ public class ProjectController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
     }
 
+    @GetMapping("/{id}/members")
+    public List<ProjectMemberSummary> getMembers(@PathVariable Integer id) {
+        return service.findMembers(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+    }
+
     @PostMapping("/{id}/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public Task addTask(@PathVariable Integer id, @Valid @RequestBody CreateTaskRequest request) {
         return service.addTask(id, request)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+    }
+
+    @RequestMapping(path = "/{id}/tasks/{taskId}", method = {RequestMethod.PATCH, RequestMethod.PUT})
+    public Task updateTask(
+            @PathVariable Integer id,
+            @PathVariable Integer taskId,
+            @Valid @RequestBody UpdateTaskRequest request
+    ) {
+        return service.updateTask(id, taskId, request)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
     }
 
     @DeleteMapping("/{id}")
